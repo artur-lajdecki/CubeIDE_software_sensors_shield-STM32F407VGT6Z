@@ -68,5 +68,3 @@ uint32_t ADC1read[9]; //ADC values are stored to this buffer through DMA
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

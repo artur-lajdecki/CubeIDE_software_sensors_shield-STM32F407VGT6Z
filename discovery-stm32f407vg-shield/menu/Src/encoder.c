@@ -102,7 +102,7 @@ _Bool encoder_step_counterclockwise(struct encoder *enc) {
 
 _Bool encoder_enter(struct encoder *enc) {
 	if(enc->enter == true) {
-		HAL_Delay(200);
+		HAL_Delay(50);
 		encoder_reset_flags(enc);
 		return true;
 	}

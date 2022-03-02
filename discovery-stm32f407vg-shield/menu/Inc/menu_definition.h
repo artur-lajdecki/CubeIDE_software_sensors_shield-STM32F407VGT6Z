@@ -33,30 +33,48 @@
 #include "stm32f4xx.h"
 #include "ntc3950.h"
 #include "stdbool.h"
+#include "daq-channel.h"
 
 /* Private define */
 #define PGM_STR(X) ((char[]) { X })
 
+
+//char CH1_status_string[];
+//char CH2_status_string[];
+//char CH3_status_string[];
+//char CH4_status_string[];
+
+uint8_t current_channel;
+
+struct menu_flags {
+	_Bool flag_encoder_event;
+
+	_Bool flag_clear_screen;
+	_Bool flag_show_menu;
+
+	_Bool flag_function;
+
+	_Bool flag_CHANGE_value;
+	_Bool flag_CHANGE_cursor;
+	_Bool flag_CHANGE_digit;
+
+	_Bool flag_display_measurements;
+};
+
+struct menu_flags menu_flags;
+
+struct cursor {
+	uint8_t place_value; //Place of a cursor
+	uint8_t previous_place_value;
+};
+
+struct cursor c;
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
 /* Function prototypes, name aligned, lowercase names */
-//_Bool flag_channel[4];
-
-extern _Bool flag_channel[4];
-
-_Bool flag_channel[4];
-
-enum DAQ_channels {
-	DAQ_CH1, DAQ_CH2, DAQ_CH3, DAQ_CH4
-};
-
-//struct DAQ{
-//	_Bool flag_channel_en;
-//
-//};
 
 //Prototypes of menu functions
 void func_A1();
@@ -81,18 +99,17 @@ void func_D4();
 
 void func_display(void);
 
-void MENU_CHANGE_cursor(struct thermistor *th);
+void MENU_CHANGE_cursor(struct cursor *c);
 
-void MENU_CHANGE_value(struct thermistor *th);
+uint32_t MENU_CHANGE_value(uint32_t value);
+
+uint32_t MENU_CHANGE_digit(uint32_t value);
 
 void MENU_SHOW_value(uint32_t value);
 
-void MENU_SHOW_cursor(struct thermistor *th);
+void MENU_SHOW_cursor(struct cursor *c);
 
 uint32_t MENU_CALC_value(uint32_t value_in, int8_t direction, uint8_t dec);
-
-
-void DAQ_channel_init( float ph_power, float th_temp_C, uint8_t channel_no);
 
 #ifdef __cplusplus
 }

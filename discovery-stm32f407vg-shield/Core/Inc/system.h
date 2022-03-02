@@ -36,16 +36,16 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <math.h>
-#include <menu.h>
 #include <string.h>
+#include "stdbool.h"
 
-//#include "i2c-lcd.h"
 #include "i2c-eeprom.h"
 #include "ntc3950.h"
 #include "photodiode.h"
-
-
+#include "daq-channel.h"
+#include "FIRFilter.h"
 // graphical user interface headers
+#include <menu.h>
 #include "menu_definition.h"
 #include <encoder.h>
 #include <GFX_FUNCTIONS.h>

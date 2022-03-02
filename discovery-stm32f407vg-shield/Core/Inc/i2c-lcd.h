@@ -1,5 +1,5 @@
 #include "stm32f4xx_hal.h"
-
+#include "stdio.h"
 void lcd_init (void);   // initialize lcd
 
 void lcd_send_cmd (char cmd);  // send command to the lcd

@@ -1,38 +1,7 @@
-/* -------------------------------------------------------------------------------- */
-/* -- �GUI - Generic GUI module (C)Achim D�bler, 2015                            -- */
-/* -------------------------------------------------------------------------------- */
-// �GUI is a generic GUI module for embedded systems.
-// This is a free software that is open for education, research and commercial
-// developments under license policy of following terms.
-//
-//  Copyright (C) 2015, Achim D�bler, all rights reserved.
-//  URL: http://www.embeddedlightning.com/
-//
-// * The �GUI module is a free software and there is NO WARRANTY.
-// * No restriction on use. You can use, modify and redistribute it for
-//   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
-// * Redistributions of source code must retain the above copyright notice.
-//
-/* -------------------------------------------------------------------------------- */
-/* -- REVISION HISTORY                                                           -- */
-/* -------------------------------------------------------------------------------- */
-//  Mar 18, 2015  V0.3  Driver support added.
-//                      Window and object support added.
-//                      Touch support added.
-//                      Fixed some minor bugs.
-//
-//  Oct 20, 2014  V0.2  Function UG_DrawRoundFrame() added.
-//                      Function UG_FillRoundFrame() added.
-//                      Function UG_DrawArc() added.
-//                      Fixed some minor bugs.
-//
-//  Oct 11, 2014  V0.1  First release.
-/* -------------------------------------------------------------------------------- */
 #include <system.h>
 
 #ifndef __UGUI_H
 #define __UGUI_H
-
 
 /* -------------------------------------------------------------------------------- */
 /* -- CONFIG SECTION                                                             -- */
@@ -54,7 +23,7 @@
 #define  USE_FONT_16X26
 //#define  USE_FONT_22X36
 //#define  USE_FONT_24X40
-#define  USE_FONT_32X53
+//#define  USE_FONT_32X53
 
 /* Specify platform-dependent integer types here */
 
@@ -66,28 +35,7 @@ typedef int16_t      UG_S16;
 typedef uint32_t     UG_U32;
 typedef int32_t      UG_S32;
 
-
-/* Example for dsPIC33
-typedef unsigned char         UG_U8;
-typedef signed char           UG_S8;
-typedef unsigned int          UG_U16;
-typedef signed int            UG_S16;
-typedef unsigned long int     UG_U32;
-typedef signed long int       UG_S32;
-*/
-
-/* -------------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------------- */
-
-
-
-
-/* -------------------------------------------------------------------------------- */
-/* -- �GUI FONTS                                                                 -- */
-/* -- Source: http://www.mikrocontroller.net/user/show/benedikt                  -- */
-/* -------------------------------------------------------------------------------- */
-typedef struct
-{
+typedef struct {
    unsigned char* p;
    UG_S16 char_width;
    UG_S16 char_height;
@@ -205,8 +153,7 @@ typedef UG_U32                                        UG_COLOR;
 /* -- UNIVERSAL STRUCTURES                                                       -- */
 /* -------------------------------------------------------------------------------- */
 /* Area structure */
-typedef struct
-{
+typedef struct {
    UG_S16 xs;
    UG_S16 ys;
    UG_S16 xe;
@@ -214,8 +161,7 @@ typedef struct
 } UG_AREA;
 
 /* Text structure */
-typedef struct
-{
+typedef struct {
    char* str;
    const UG_FONT* font;
    UG_AREA a;
@@ -229,8 +175,7 @@ typedef struct
 /* -------------------------------------------------------------------------------- */
 /* -- BITMAP                                                                     -- */
 /* -------------------------------------------------------------------------------- */
-typedef struct
-{
+typedef struct {
    void* p;
    UG_U16 width;
    UG_U16 height;
@@ -244,6 +189,7 @@ typedef struct
 #define BMP_BPP_8                                     (1<<3)
 #define BMP_BPP_16                                    (1<<4)
 #define BMP_BPP_32                                    (1<<5)
+
 #define BMP_RGB888                                    (1<<0)
 #define BMP_RGB565                                    (1<<1)
 #define BMP_RGB555                                    (1<<2)
@@ -252,8 +198,7 @@ typedef struct
 /* -- MESSAGE                                                                    -- */
 /* -------------------------------------------------------------------------------- */
 /* Message structure */
-typedef struct
-{
+typedef struct {
    UG_U8 type;
    UG_U8 id;
    UG_U8 sub_id;
@@ -270,8 +215,7 @@ typedef struct
 /* -- TOUCH                                                                      -- */
 /* -------------------------------------------------------------------------------- */
 /* Touch structure */
-typedef struct
-{
+typedef struct {
    UG_U8 state;
    UG_S16 xp;
    UG_S16 yp;
@@ -285,8 +229,7 @@ typedef struct
 /* -- OBJECTS                                                                    -- */
 /* -------------------------------------------------------------------------------- */
 /* Object structure */
-struct S_OBJECT
-{
+struct S_OBJECT {
    UG_U8 state;                              /* object state                               */
    UG_U8 touch_state;                        /* object touch state                         */
    void (*update) (UG_WINDOW*,UG_OBJECT*);   /* pointer to object-specific update function */
@@ -334,8 +277,7 @@ struct S_OBJECT
 /* -- WINDOW                                                                     -- */
 /* -------------------------------------------------------------------------------- */
 /* Title structure */
-typedef struct
-{
+typedef struct {
    char* str;
    const UG_FONT* font;
    UG_S8 h_space;
@@ -349,8 +291,7 @@ typedef struct
 } UG_TITLE;
 
 /* Window structure */
-struct S_WINDOW
-{
+struct S_WINDOW {
    UG_U8 objcnt;
    UG_OBJECT* objlst;
    UG_U8 state;
@@ -384,8 +325,7 @@ struct S_WINDOW
 /* -- BUTTON OBJECT                                                              -- */
 /* -------------------------------------------------------------------------------- */
 /* Button structure */
-typedef struct
-{
+typedef struct {
    UG_U8 state;
    UG_U8 style;
    UG_COLOR fc;
@@ -436,8 +376,7 @@ typedef struct
 /* -- TEXTBOX OBJECT                                                             -- */
 /* -------------------------------------------------------------------------------- */
 /* Textbox structure */
-typedef struct
-{
+typedef struct {
    char* str;
    const UG_FONT* font;
    UG_U8 style;
@@ -474,8 +413,7 @@ typedef struct
 /* -- IMAGE OBJECT                                                               -- */
 /* -------------------------------------------------------------------------------- */
 /* Image structure */
-typedef struct
-{
+typedef struct {
    void* img;
    UG_U8 type;
 } UG_IMAGE;
@@ -508,8 +446,7 @@ typedef struct
 /* -------------------------------------------------------------------------------- */
 /* -- �GUI DRIVER                                                                -- */
 /* -------------------------------------------------------------------------------- */
-typedef struct
-{
+typedef struct {
   void* driver;
   UG_U8 state;
 } UG_DRIVER;
@@ -525,8 +462,7 @@ typedef struct
 /* -------------------------------------------------------------------------------- */
 /* -- �GUI CORE STRUCTURE                                                        -- */
 /* -------------------------------------------------------------------------------- */
-typedef struct
-{
+typedef struct {
    void (*pset)(UG_S16,UG_S16,UG_COLOR);
    UG_S16 x_dim;
    UG_S16 y_dim;
@@ -535,8 +471,7 @@ typedef struct
    UG_WINDOW* active_window;
    UG_WINDOW* last_window;
 
-   struct
-   {
+   struct {
       UG_S16 x_pos;
       UG_S16 y_pos;
       UG_S16 x_start;
@@ -547,8 +482,7 @@ typedef struct
       UG_COLOR back_color;
    } console;
 
-   struct
-   {
+   struct {
       unsigned char* p;
       UG_S16 font_height;
       UG_S16 font_width;
@@ -569,10 +503,7 @@ typedef struct
 
 #define UG_SATUS_WAIT_FOR_UPDATE                      (1<<0)
 
-/* -------------------------------------------------------------------------------- */
-/* -- �GUI COLORS                                                                -- */
-/* -- Source: http://www.rapidtables.com/web/color/RGB_Color.htm                 -- */
-/* -------------------------------------------------------------------------------- */
+
 #define  C_MAROON                     0x800000
 #define  C_DARK_RED                   0x8B0000
 #define  C_BROWN                      0xA52A2A

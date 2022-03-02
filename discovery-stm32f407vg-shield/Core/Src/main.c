@@ -40,7 +40,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define ADC_VREFINT_NUMBER 8
+#define THERMISTORS_FIR_NUMBER 4
+#define PHOTODIODES_FIR_NUMBER 4
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,9 +53,13 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+_Bool FIR_flag = false;
+FIRFilter moving_average_thermistors[THERMISTORS_FIR_NUMBER];
+FIRFilter moving_average_photodiodes[PHOTODIODES_FIR_NUMBER];
 
 	/*
+	 * ---- INFO ----
+	 *
 	 * THERMISTORS
 	 * ADC1read[0]  - thermistor[0]
 	 * ADC1read[1]  - thermistor[1]
@@ -70,51 +76,12 @@
 	 * ADC1read[8]  - vref internal channel
 	 */
 
-	float current_value_thermistor[4]; //ADC values are recalculated for sending through USART
-	float current_value_photodiode[4]; //ADC values are recalculated for sending through USART
-
-	uint8_t error_msg[] = "COM error.\n\r"; //If error in received message has been detected
-
-	uint8_t Received[13]; //Buffer for received USART data (DMA)
-
-	uint8_t data[8][20]; //Buffer for data to send (DMA)
-
-	uint8_t data_write = 90; //??
-
-	char data_read0[10]; //??
-
-	 struct USART_frame {
-		 uint8_t redundancy;
-		 uint32_t CMD;
-		 uint8_t data;
-	 };
-
-	 enum USART_flag {
-		 thermistor_1_max_temp = 0,
-		 thermistor_2_max_temp = 2,
-		 thermistor_3_max_temp = 4,
-		 thermistor_4_max_temp = 6,
-
-		 photodiode_1_max_pow = 8,
-		 photodiode_2_max_pow = 10,
-		 photodiode_3_max_pow = 12,
-		 photodiode_4_max_pow = 14,
-
-		 channel_1_enable = 16,
-		 channel_2_enable = 18,
-		 channel_3_enable = 20,
-		 channel_4_enable = 22
-	 };
-
-	 //struct USART_frame
-	 _Bool flag_USART; //flag which enables sending data in the main while loop
-	 _Bool flag_eeprom[4];
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+_Bool Average_IsLimit(DAQ_channel_no);
 void menu_encoder_event(void);
 void display_values(void);
 void calculate_thermistors_data(void);
@@ -124,6 +91,7 @@ void send_photodiodes_data(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -166,7 +134,6 @@ int main(void)
   MX_SPI3_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-
 /* -------------------------------------------------------------------------------- */
 /* -- TIMERS START -- */
 /* -------------------------------------------------------------------------------- */
@@ -176,7 +143,7 @@ int main(void)
 /* -------------------------------------------------------------------------------- */
 /* -- USART Rx DMA START -- */
 /* -------------------------------------------------------------------------------- */
-  HAL_UART_Receive_DMA(&huart1, Received, 13);
+//  HAL_UART_Receive_DMA(&huart1, Received, 13);
 
 /* -------------------------------------------------------------------------------- */
 /* -- CREATE ENCODER -- */
@@ -201,46 +168,105 @@ int main(void)
 
 
 /* -------------------------------------------------------------------------------- */
-/* -- Initialise channels (enable & max values for ph and th) -- */
+/* -- Initialise channels  -- */
 /* -------------------------------------------------------------------------------- */
-HAL_Delay(500);
-DAQ_channel_init( 500.0, 25, DAQ_CH1);
-DAQ_channel_init( 200.0, 107.8, DAQ_CH2);
-DAQ_channel_init( 300.0, 107.8, DAQ_CH3);
-DAQ_channel_init( 400.0, 107.8, DAQ_CH4);
+  DAQ_channel_init(DAQ_CH1, CHANNEL_1_GPIO_TypeDef, CHANNEL_1_GPIO_Pin, &thermistor[0], &photodiode[0]);
+  DAQ_channel_init(DAQ_CH2, CHANNEL_2_GPIO_TypeDef, CHANNEL_2_GPIO_Pin, &thermistor[1], &photodiode[1]);
+  DAQ_channel_init(DAQ_CH3, CHANNEL_3_GPIO_TypeDef, CHANNEL_3_GPIO_Pin, &thermistor[2], &photodiode[2]);
+  DAQ_channel_init(DAQ_CH4, CHANNEL_4_GPIO_TypeDef, CHANNEL_4_GPIO_Pin, &thermistor[3], &photodiode[3]);
 
-//To set the maximum values manually:
-// thermistor_1.ADC_max_val = 'value from 0 to 4095'
-// photodiode_1.ADC_max_val = 'value from 0 to 4095'
- thermistor[0].ADC_max_val = 2500;
- photodiode[0].ADC_max_val = 2500;
+  HAL_Delay(500);
 
- thermistor[1].ADC_max_val = 2500;
- photodiode[1].ADC_max_val = 2500;
+  DAQ_channel_set_th_limit(DAQ_CH1, 2500);
+  DAQ_channel_set_ph_limit(DAQ_CH1, 50000);
 
- thermistor[2].ADC_max_val = 2500;
- photodiode[2].ADC_max_val = 2500;
+  DAQ_channel_set_th_limit(DAQ_CH2, 2500);
+  DAQ_channel_set_ph_limit(DAQ_CH2, 50000);
 
- thermistor[3].ADC_max_val = 2500;
- photodiode[3].ADC_max_val = 2500;
-//
+  DAQ_channel_set_th_limit(DAQ_CH3, 2500);
+  DAQ_channel_set_ph_limit(DAQ_CH3, 50000);
+
+  DAQ_channel_set_th_limit(DAQ_CH4, 2500);
+  DAQ_channel_set_ph_limit(DAQ_CH4, 50000);
+
+
+  for(uint8_t i = 0; i < THERMISTORS_FIR_NUMBER; i++) {
+	  FIRFilter_Init(&moving_average_thermistors[i]);
+  }
+  for(uint8_t i = 0; i < PHOTODIODES_FIR_NUMBER; i++) {
+  	  FIRFilter_Init(&moving_average_photodiodes[i]);
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  menu_flags.flag_encoder_event = true;
   while (1)
   {
-	menu_encoder_event();
+	if(!menu_flags.flag_function) {
+		menu_encoder_event();
+	}
 
-//	display_values();
+	if(menu_flags.flag_clear_screen) {
+		ST7735_FillScreen(BLACK);
+		menu_flags.flag_clear_screen = false;
+	}
 
-//	send_thermistors_data();
-//	send_photodiodes_data();
+	if(menu_flags.flag_show_menu) {
+		ST7735_FillScreen(BLACK);
+		Menu_Show();
+		menu_flags.flag_show_menu = false;
+	}
 
-	//flag_USART = false;
+	if(menu_flags.flag_function) {
 
+		for(uint8_t i = 0; i<NUMBER_OF_CHANNELS; i++) {
+			if(DAQ_channel_get_flag_enable(i)) {
+				DAQ_CHANGE_enable(i);
+			}
+			if(DAQ_channel_get_flag_th_limit(i)) {
+				menu_flags.flag_CHANGE_value = true;
+			}
+			if(DAQ_channel_get_flag_ph_limit(i)) {
+				menu_flags.flag_CHANGE_value = true;
+			}
+			if(DAQ_channel_get_flag_save(i)) {
+				DAQ_CHANGE_save(i);
+			}
+		}
+	}
 
+	if(menu_flags.flag_CHANGE_value){
+		for(uint8_t i = 0; i<NUMBER_OF_CHANNELS; i++) {
+			if(DAQ_channel_get_flag_th_limit(i)) {
+//				MENU_CHANGE_value(DAQ_channel[no].th_limit);
+			}
+			else if(DAQ_channel_get_flag_ph_limit(i)){
+//				MENU_CHANGE_value(DAQ_channel[no].ph_limit);
+			}
+		}
 
+	}
+
+	if(menu_flags.flag_display_measurements) {
+		display_values();
+		if(encoder_enter(&encoder_1)) {
+			menu_flags.flag_display_measurements = false;
+			menu_flags.flag_show_menu = true;
+			menu_flags.flag_function = false;
+		}
+	}
+
+	if(FIR_flag) {
+		for(int channel_no = 0; channel_no<NUMBER_OF_CHANNELS; channel_no++) {
+			FIRFilter_Update(&moving_average_thermistors[channel_no], ADC1read[channel_no]);
+			FIRFilter_Update(&moving_average_photodiodes[channel_no], ADC1read[channel_no+4]);
+		}
+
+		FIR_flag = false;
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -298,7 +324,6 @@ void menu_encoder_event(void) {
 
 	  if( encoder_step_clockwise(&encoder_1) == true) {
 		Menu_SelectNext();
-
 	  }
 	  if(encoder_step_counterclockwise(&encoder_1) == true) {
 		Menu_SelectPrev();
@@ -310,236 +335,49 @@ void menu_encoder_event(void) {
 
 void display_values(void) {
 
-		uint8_t text[8][12];
+	for(int i = 0; i<4; i++) {
+		photodiode[i].power_value = photodiode_ADC_to_power(moving_average_photodiodes[i].out, ADC1read[8]);
+	}
+	for(int i = 0; i<4; i++) {
+		thermistor[i].temperature_value = ntc3950_ADC_to_Celcius(moving_average_thermistors[i].out, ADC1read[8]);
+	}
 
-		for (int i = 0; i<4; i++) {
-			sprintf(text[i], "|T%d>%d  ", i, ADC1read[i]);
-			ST7735_WriteString(25, 0+(30*i), text[i], Font_7x10, WHITE, BLACK);
+	char text[8][12];
+	for (int i = 0; i<4; i++) {
+		sprintf(text[i], "T%d:%.1fC < %.1fC", i, thermistor[i].temperature_value, thermistor[i].temperature_max_value);
+		ST7735_WriteString(2, 2+(30*i), text[i], Font_7x10, WHITE, BLACK);
 
-			sprintf(text[i], "|L%d<%d  ", i, thermistor[i].ADC_max_val);
-			ST7735_WriteString(95, 0+(30*i), text[i], Font_7x10, WHITE, BLACK);
-
-			sprintf(text[i], "|P%d>%d  ", i, ADC1read[i+4]);
-			ST7735_WriteString(25, 15+(30*i), text[i], Font_7x10, WHITE, BLACK);
-
-			sprintf(text[i], "|L%d<%d  ", i, photodiode[i].ADC_max_val);
-			ST7735_WriteString(95, 15+(30*i), text[i], Font_7x10, WHITE, BLACK);
-		}
-
-//		for (int i = 4; i<8; i++) {
-//			sprintf(text[i], "|P%d>%d  ", i, ADC1read[i]);
-//			ST7735_WriteString(25, 0+(15*i), text[i], Font_7x10, WHITE, BLACK);
-//
-//			sprintf(text[i], "|L%d>%d  ", i, photodiode[i-4].ADC_max_val);
-//			ST7735_WriteString(95, 0+(15*i), text[i], Font_7x10, WHITE, BLACK);
-//		}
-
+		sprintf(text[i], "P%d:%.1fmW < %.1fmW", i, photodiode[i].power_value, photodiode[i].power_max_value);
+		ST7735_WriteString(2, 17+(30*i), text[i], Font_7x10, WHITE, BLACK);
+	}
 
 }
 
-
-void send_thermistors_data(void) {
-	// DANE Z TERMISTOROW
-	current_value_thermistor[0] = ntc3950_ADC_to_Celcius(ADC1read[0], ADC1read[8]);
-	sprintf(data[0], "01010101%3.2f\r\n", current_value_thermistor[0]);
-	HAL_UART_Transmit_DMA(&huart1, (uint8_t*) data[0], strlen(data[0]));
-
-	current_value_thermistor[1] = ntc3950_ADC_to_Celcius(ADC1read[1], ADC1read[8]);
-	sprintf(data[1], "01010102%3.2f\r\n", current_value_thermistor[1]);
-	HAL_UART_Transmit_DMA(&huart1, (uint8_t*) data[1], strlen(data[1]));
-
-	current_value_thermistor[2] = ntc3950_ADC_to_Celcius(ADC1read[2], ADC1read[8]);
-	sprintf(data[2], "01010103%3.2f\r\n", current_value_thermistor[2]);
-	HAL_UART_Transmit_DMA(&huart1, (uint8_t*) data[2], strlen(data[2]));
-
-	current_value_thermistor[3] = ntc3950_ADC_to_Celcius(ADC1read[3], ADC1read[8]);
-	sprintf(data[3], "01010104%3.2f\r\n", current_value_thermistor[3]);
-	HAL_UART_Transmit_DMA(&huart1, (uint8_t*) data[3], strlen(data[3]));
+_Bool Average_IsLimit(DAQ_channel_no no) {
+	if (moving_average_photodiodes[no].out >= DAQ_channel[no].ph->ADC_max_value || moving_average_thermistors[no].out <= DAQ_channel[no].th->ADC_max_value) {
+		return true;
+	}
+	else
+	return false;
 }
-
-void send_photodiodes_data(void) {
-	// DANE Z FOTODIOD
-	current_value_photodiode[0] = photodiode_ADC_to_power(ADC1read[4], ADC1read[8]);
-	sprintf(data[4], "01010105%3.2f\r\n", current_value_photodiode[0]);
-	HAL_UART_Transmit_DMA(&huart1, (uint8_t*) data[4], strlen(data[4]));
-
-	current_value_photodiode[1] = photodiode_ADC_to_power(ADC1read[5], ADC1read[8]);
-	sprintf(data[5], "01010106%3.2f\r\n", current_value_photodiode[1]);
-	HAL_UART_Transmit_DMA(&huart1, (uint8_t*) data[5], strlen(data[5]));
-
-	current_value_photodiode[2] = photodiode_ADC_to_power(ADC1read[6], ADC1read[8]);
-	sprintf(data[6], "01010107%3.2f\r\n", current_value_photodiode[2]);
-	HAL_UART_Transmit_DMA(&huart1, (uint8_t*) data[6], strlen(data[6]));
-
-	current_value_photodiode[3] = photodiode_ADC_to_power(ADC1read[7], ADC1read[8]);
-	sprintf(data[7], "01010108%3.2f\r\n", current_value_photodiode[3]);
-	HAL_UART_Transmit_DMA(&huart1, (uint8_t*) data[7], strlen(data[7]));
-}
-
-//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-//// Jeżeli przerwanie pochodzi od timera 10
-//	if(htim->Instance == TIM10) {
-//		flag_USART = true;
-//	}
-//}
-
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-//	static float result = 0;
-//
-//	 if(Received[0] == '1' && Received[1] == '0' && Received[2] == '1' && Received[3] == '0' && Received[4] == '1' && Received[5] == '0' && Received[6] == '1')
-//	 {
-//
-//		 switch(Received[7])
-//		 {
-//		 case '1':
-//
-//			 for(int i=8; i<13; i++){
-//				 result = result * 10 + ( Received[i] - '0' );
-//				 }
-//
-//			 thermistor[0].temperature_C_max = result/100;
-//			 result = 0;
-//
-//			 flag_eeprom[0] = 1;
-//
-//		     break;
-//
-//		 case '2':
-//
-//			 for(int i=8; i<13; i++){
-//				 result = result * 10 + ( Received[i] - '0' );
-//				 }
-//
-//			 thermistor[1].temperature_C_max = result/100;
-//			 result = 0;
-//
-//			 flag_eeprom[1] = 1;
-//
-//		     break;
-//
-//		 case '3':
-//
-//			 for(int i=8; i<13; i++){
-//				 result = result * 10 + ( Received[i] - '0' );
-//				 }
-//
-//			 thermistor[2].temperature_C_max = result/100;
-//			 result = 0;
-//
-//			 flag_eeprom[2] = 1;
-//
-//		     break;
-//
-//		 case '4':
-//
-//			 for(int i=8; i<13; i++){
-//				 result = result * 10 + ( Received[i] - '0' );
-//				 }
-//
-//			 thermistor[3].temperature_C_max = result/100;
-//			 result = 0;
-//
-//			 flag_eeprom[3] = 1;
-//
-//			 break;
-//
-//		 case '5':
-//
-//			 if(flag_channel[0] == 0)
-//			 {
-//				 flag_channel[0] = 1; //channel open/high
-//				 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0,GPIO_PIN_RESET); //transistor closed
-//			 }
-//			 else if(flag_channel[0] == 1)
-//			 {
-//				 flag_channel[0] = 0; //channel closed/low
-//				 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0,GPIO_PIN_SET);  //transistor open
-//			 }
-//			 break;
-//
-//		 case '6':
-//
-//			 if(flag_channel[1] == 0)
-//			 {
-//				 flag_channel[1] = 1;
-//				 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1,GPIO_PIN_RESET);
-//			 }
-//			 else if(flag_channel[1] == 1)
-//			 {
-//				 flag_channel[1] = 0;
-//				 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1,GPIO_PIN_SET);
-//			 }
-//			 break;
-//
-//		 case '7':
-//
-//			 if(flag_channel[2] == 0)
-//			 {
-//				 flag_channel[2] = 1;
-//				 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2,GPIO_PIN_RESET);
-//			 }
-//			 else if(flag_channel[2] == 1)
-//			 {
-//				 flag_channel[2] = 0;
-//				 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2,GPIO_PIN_SET);
-//			 }
-//			 break;
-//
-//		 case '8':
-//
-//			 if(flag_channel[3] == 0)
-//			 {
-//				 flag_channel[3] = 1;
-//				 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3,GPIO_PIN_RESET);
-//			 }
-//			 else if(flag_channel[3] == 1)
-//			 {
-//				 flag_channel[3] = 0;
-//				 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3,GPIO_PIN_SET);
-//			 }
-//			 break;
-//
-//		 default:
-//
-//		     break;
-//		 }
-//	 }
-//	 else
-//	 {
-//		 HAL_UART_Transmit_DMA(&huart1, (uint8_t*)error_msg, 12);
-//	 }
-
-
-	 HAL_UART_Receive_DMA(&huart1, Received, 13); // Ponowne włączenie nasłuchiwania
+//	 HAL_UART_Receive_DMA(&huart1, Received, 13); // Ponowne włączenie nasłuchiwania
 }
 
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
-	 if(ADC1read[4] >= photodiode[0].ADC_max_val || ADC1read[0] >= thermistor[0].ADC_max_val)
-	 {
-		 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_0,GPIO_PIN_SET);
-		 flag_channel[0] = 0;
+	FIR_flag = true;
 
-	 }
-	 if(ADC1read[5] >= photodiode[1].ADC_max_val || ADC1read[1] >= thermistor[1].ADC_max_val)
-	 {
-		 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1,GPIO_PIN_SET);
-		 flag_channel[1] = 0;
+	for(int channel_no = 0; channel_no<NUMBER_OF_CHANNELS; channel_no++) {
 
-	 }
-	 if(ADC1read[6] >= photodiode[2].ADC_max_val || ADC1read[2] >= thermistor[2].ADC_max_val)
-	 {
-		 HAL_GPIO_WritePin(GPIOD, GPIO_PIN_2,GPIO_PIN_SET);
-		 flag_channel[2] = 0;
-	 }
-	 if(ADC1read[7] >= photodiode[3].ADC_max_val || ADC1read[3] >= thermistor[3].ADC_max_val)
-	 {
-		HAL_GPIO_WritePin(GPIOD, GPIO_PIN_3,GPIO_PIN_SET);
-		flag_channel[3] = 0;
-	 }
+		if(Average_IsLimit(channel_no))
+			 {
+				DAQ_channel_off(channel_no);
+			 }
+	}
 
 }
 
@@ -575,4 +413,3 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
