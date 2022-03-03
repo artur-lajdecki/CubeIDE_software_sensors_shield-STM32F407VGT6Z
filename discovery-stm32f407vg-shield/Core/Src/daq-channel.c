@@ -58,6 +58,7 @@ void DAQ_channel_set_th_limit(DAQ_channel_no no, uint32_t th_limit) {
 	DAQ_channel[no].th_limit = th_limit;
 	DAQ_channel[no].th->temperature_max_value = ((float)DAQ_channel[no].th_limit/100);
 	DAQ_channel[no].th->ADC_max_value = ntc3950_Celcius_to_ADC(DAQ_channel[no].th->temperature_max_value, ADC1read[8]);
+	DAQ_channel_set_flag_th_limit(no, false);
 }
 
 void DAQ_channel_set_flag_ph_limit(DAQ_channel_no no, _Bool flag) {
@@ -131,22 +132,22 @@ void DAQ_channel_on(DAQ_channel_no no) {
 }
 
 
-//CHANGE
-void DAQ_CHANGE_temperature_limit(DAQ_channel_no no) {
-	DAQ_channel[no].th_limit = MENU_CHANGE_value(DAQ_channel[no].th_limit);
-	DAQ_channel[no].th->temperature_max_value = ((float)DAQ_channel[no].th_limit/100);
-	DAQ_channel[no].th->ADC_max_value = ntc3950_Celcius_to_ADC(DAQ_channel[no].th->temperature_max_value, ADC1read[8]);
-}
-
-void DAQ_CHANGE_power_limit(DAQ_channel_no no) {
-	DAQ_channel[no].ph_limit = MENU_CHANGE_value(DAQ_channel[no].ph_limit);
-	DAQ_channel[no].ph->power_max_value =  ((float)DAQ_channel[no].ph_limit/100);
-	DAQ_channel[no].ph->ADC_max_value = photodiode_power_to_ADC(DAQ_channel[no].ph->power_max_value, ADC1read[8]);
-
-}
+////CHANGE
+//void DAQ_CHANGE_temperature_limit(DAQ_channel_no no) {
+//	DAQ_channel[no].th_limit = MENU_CHANGE_value(DAQ_channel[no].th_limit);
+//	DAQ_channel[no].th->temperature_max_value = ((float)DAQ_channel[no].th_limit/100);
+//	DAQ_channel[no].th->ADC_max_value = ntc3950_Celcius_to_ADC(DAQ_channel[no].th->temperature_max_value, ADC1read[8]);
+//}
+//
+//void DAQ_CHANGE_power_limit(DAQ_channel_no no) {
+//	DAQ_channel[no].ph_limit = MENU_CHANGE_value(DAQ_channel[no].ph_limit);
+//	DAQ_channel[no].ph->power_max_value =  ((float)DAQ_channel[no].ph_limit/100);
+//	DAQ_channel[no].ph->ADC_max_value = photodiode_power_to_ADC(DAQ_channel[no].ph->power_max_value, ADC1read[8]);
+//
+//}
 
 void DAQ_CHANGE_enable(DAQ_channel_no no) {
-	ST7735_WriteString(2, 2+(30*0), "Channel has been turned: ", Font_7x10, WHITE, BLACK);
+	ST7735_WriteString(2, 2+(30*0), "Channel turned: ", Font_7x10, WHITE, BLACK);
 
 	if(DAQ_channel_get_flag_enable(no)){
 		DAQ_channel_off(no);

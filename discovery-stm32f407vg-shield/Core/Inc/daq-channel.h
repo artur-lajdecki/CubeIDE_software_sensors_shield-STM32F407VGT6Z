@@ -111,8 +111,8 @@ void DAQ_channel_off(DAQ_channel_no no);
 void DAQ_channel_on(DAQ_channel_no no);
 
 //CHANGE VALUES
-void DAQ_CHANGE_temperature_limit(DAQ_channel_no no);
-void DAQ_CHANGE_power_limit(DAQ_channel_no no);
+//void DAQ_CHANGE_temperature_limit(DAQ_channel_no no);
+//void DAQ_CHANGE_power_limit(DAQ_channel_no no);
 void DAQ_CHANGE_enable(DAQ_channel_no no);
 void DAQ_CHANGE_save(DAQ_channel_no no);
 

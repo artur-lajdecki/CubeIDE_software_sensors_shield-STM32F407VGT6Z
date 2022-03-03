@@ -203,9 +203,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   menu_flags.flag_encoder_event = true;
+  uint32_t value = 0;
   while (1)
   {
-	if(!menu_flags.flag_function) {
+	if(menu_flags.flag_function && !menu_flags.flag_CHANGE_value && !menu_flags.flag_change_finish && encoder_enter(&encoder_1))  {
+		menu_flags.flag_function = false;
+		menu_flags.flag_display_measurements = false;
+		menu_flags.flag_show_menu = true;
+	}
+
+	if(!menu_flags.flag_function && !menu_flags.flag_CHANGE_value) {
 		menu_encoder_event();
 	}
 
@@ -226,38 +233,45 @@ int main(void)
 			if(DAQ_channel_get_flag_enable(i)) {
 				DAQ_CHANGE_enable(i);
 			}
-			if(DAQ_channel_get_flag_th_limit(i)) {
+
+			else if(DAQ_channel_get_flag_th_limit(i)) {
+
+				if(menu_flags.flag_change_finish) {
+					DAQ_channel_set_th_limit(i,value);
+					menu_flags.flag_change_finish = false;
+					menu_flags.flag_CHANGE_value = false;;
+					menu_flags.flag_CHANGE_cursor = false;
+
+				}
+				else {
+					value = DAQ_channel_get_th_limit(i);
+					menu_flags.flag_CHANGE_value = true;
+					menu_flags.flag_CHANGE_cursor = true;
+					menu_flags.flag_clear_screen = true;
+				}
+
+				menu_flags.flag_function = false;
+
+			}
+
+			else if(DAQ_channel_get_flag_ph_limit(i)) {
 				menu_flags.flag_CHANGE_value = true;
 			}
-			if(DAQ_channel_get_flag_ph_limit(i)) {
-				menu_flags.flag_CHANGE_value = true;
-			}
-			if(DAQ_channel_get_flag_save(i)) {
+
+			else if(DAQ_channel_get_flag_save(i)) {
 				DAQ_CHANGE_save(i);
 			}
+		}
+
+		if(menu_flags.flag_display_measurements) {
+			display_values();
 		}
 	}
 
 	if(menu_flags.flag_CHANGE_value){
-		for(uint8_t i = 0; i<NUMBER_OF_CHANNELS; i++) {
-			if(DAQ_channel_get_flag_th_limit(i)) {
-//				MENU_CHANGE_value(DAQ_channel[no].th_limit);
-			}
-			else if(DAQ_channel_get_flag_ph_limit(i)){
-//				MENU_CHANGE_value(DAQ_channel[no].ph_limit);
-			}
-		}
-
+		value = MENU_CHANGE_value(value);
 	}
 
-	if(menu_flags.flag_display_measurements) {
-		display_values();
-		if(encoder_enter(&encoder_1)) {
-			menu_flags.flag_display_measurements = false;
-			menu_flags.flag_show_menu = true;
-			menu_flags.flag_function = false;
-		}
-	}
 
 	if(FIR_flag) {
 		for(int channel_no = 0; channel_no<NUMBER_OF_CHANNELS; channel_no++) {

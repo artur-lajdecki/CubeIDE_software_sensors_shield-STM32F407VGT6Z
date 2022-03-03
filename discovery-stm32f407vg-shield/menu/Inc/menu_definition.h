@@ -53,6 +53,7 @@ struct menu_flags {
 	_Bool flag_show_menu;
 
 	_Bool flag_function;
+	_Bool flag_change_finish;
 
 	_Bool flag_CHANGE_value;
 	_Bool flag_CHANGE_cursor;
@@ -98,6 +99,8 @@ void func_D3();
 void func_D4();
 
 void func_display(void);
+
+void MENU_flags_reset(void);
 
 void MENU_CHANGE_cursor(struct cursor *c);
 
