@@ -232,6 +232,7 @@ int main(void)
 		for(uint8_t i = 0; i<NUMBER_OF_CHANNELS; i++) {
 			if(DAQ_channel_get_flag_enable(i)) {
 				DAQ_CHANGE_enable(i);
+				DAQ_channel_set_flag_enable(i, false);
 			}
 
 			else if(DAQ_channel_get_flag_th_limit(i)) {
@@ -239,14 +240,16 @@ int main(void)
 				if(menu_flags.flag_change_finish) {
 					DAQ_channel_set_th_limit(i,value);
 					menu_flags.flag_change_finish = false;
-					menu_flags.flag_CHANGE_value = false;;
+					menu_flags.flag_CHANGE_value = false;
 					menu_flags.flag_CHANGE_cursor = false;
+					menu_flags.flag_CHANGE_temperature = false;
 
 				}
 				else {
 					value = DAQ_channel_get_th_limit(i);
 					menu_flags.flag_CHANGE_value = true;
 					menu_flags.flag_CHANGE_cursor = true;
+					menu_flags.flag_CHANGE_temperature = true;
 					menu_flags.flag_clear_screen = true;
 				}
 
@@ -255,7 +258,23 @@ int main(void)
 			}
 
 			else if(DAQ_channel_get_flag_ph_limit(i)) {
-				menu_flags.flag_CHANGE_value = true;
+				if(menu_flags.flag_change_finish) {
+					DAQ_channel_set_ph_limit(i,value);
+					menu_flags.flag_change_finish = false;
+					menu_flags.flag_CHANGE_value = false;
+					menu_flags.flag_CHANGE_cursor = false;
+					menu_flags.flag_CHANGE_power = false;
+
+				}
+				else {
+					value = DAQ_channel_get_ph_limit(i);
+					menu_flags.flag_CHANGE_value = true;
+					menu_flags.flag_CHANGE_cursor = true;
+					menu_flags.flag_CHANGE_power = true;
+					menu_flags.flag_clear_screen = true;
+				}
+
+				menu_flags.flag_function = false;
 			}
 
 			else if(DAQ_channel_get_flag_save(i)) {
@@ -270,6 +289,7 @@ int main(void)
 
 	if(menu_flags.flag_CHANGE_value){
 		value = MENU_CHANGE_value(value);
+
 	}
 
 
@@ -358,10 +378,10 @@ void display_values(void) {
 
 	char text[8][12];
 	for (int i = 0; i<4; i++) {
-		sprintf(text[i], "T%d:%.1fC < %.1fC", i, thermistor[i].temperature_value, thermistor[i].temperature_max_value);
+		sprintf(text[i], "T%d:%.2fC < %.2fC", i, thermistor[i].temperature_value, thermistor[i].temperature_max_value);
 		ST7735_WriteString(2, 2+(30*i), text[i], Font_7x10, WHITE, BLACK);
 
-		sprintf(text[i], "P%d:%.1fmW < %.1fmW", i, photodiode[i].power_value, photodiode[i].power_max_value);
+		sprintf(text[i], "P%d:%.2fmW < %.2fmW", i, photodiode[i].power_value, photodiode[i].power_max_value);
 		ST7735_WriteString(2, 17+(30*i), text[i], Font_7x10, WHITE, BLACK);
 	}
 

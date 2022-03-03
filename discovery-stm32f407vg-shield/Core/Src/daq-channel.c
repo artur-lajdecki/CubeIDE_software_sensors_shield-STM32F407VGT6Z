@@ -38,6 +38,10 @@ void DAQ_channel_set_flag_enable(DAQ_channel_no no, _Bool flag) {
 	DAQ_channel[no].flag_enable = flag;
 }
 
+void DAQ_channel_set_flag_state(DAQ_channel_no no, _Bool flag) {
+	DAQ_channel[no].flag_state = flag;
+}
+
 void DAQ_channel_set_thermistor(DAQ_channel_no no, struct thermistor *th) {
 	DAQ_channel[no].th = th;
 }
@@ -69,7 +73,7 @@ void DAQ_channel_set_ph_limit(DAQ_channel_no no, uint32_t ph_limit) {
 	DAQ_channel[no].ph_limit = ph_limit;
 	DAQ_channel[no].ph->power_max_value = ((float)DAQ_channel[no].ph_limit/100);
 	DAQ_channel[no].ph->ADC_max_value = photodiode_power_to_ADC(DAQ_channel[no].ph->power_max_value, ADC1read[8]);
-
+	DAQ_channel_set_flag_ph_limit(no, false);
 }
 
 //GET
@@ -90,6 +94,10 @@ uint16_t DAQ_channel_get_GPIO_Pin(DAQ_channel_no no) {
 
 _Bool DAQ_channel_get_flag_enable(DAQ_channel_no no) {
 	return DAQ_channel[no].flag_enable;
+}
+
+_Bool DAQ_channel_get_flag_state(DAQ_channel_no no) {
+	return DAQ_channel[no].flag_state;
 }
 
 struct thermistor *DAQ_channel_get_thermistor(DAQ_channel_no no) {
@@ -122,12 +130,12 @@ uint32_t DAQ_channel_get_ph_limit(DAQ_channel_no no) {
 
 //ONOFF
 void DAQ_channel_off(DAQ_channel_no no) {
-	DAQ_channel_set_flag_enable(no, false);
+	DAQ_channel_set_flag_state(no, false);
 	HAL_GPIO_WritePin(DAQ_channel_get_GPIO_TypeDef(no), DAQ_channel_get_GPIO_Pin(no), GPIO_PIN_SET); //transistor open -> channel closed
 }
 
 void DAQ_channel_on(DAQ_channel_no no) {
-	DAQ_channel_set_flag_enable(no, true);
+	DAQ_channel_set_flag_state(no, true);
 	HAL_GPIO_WritePin(DAQ_channel_get_GPIO_TypeDef(no), DAQ_channel_get_GPIO_Pin(no), GPIO_PIN_RESET); //transistor closed -> channel open
 }
 
@@ -148,16 +156,15 @@ void DAQ_channel_on(DAQ_channel_no no) {
 
 void DAQ_CHANGE_enable(DAQ_channel_no no) {
 	ST7735_WriteString(2, 2+(30*0), "Channel turned: ", Font_7x10, WHITE, BLACK);
-
-	if(DAQ_channel_get_flag_enable(no)){
+	if(DAQ_channel_get_flag_state(no)) {
 		DAQ_channel_off(no);
 		ST7735_WriteString(2, 2+(30*2), "OFF", Font_16x26, RED, BLACK);
+
 	}
 	else {
 		DAQ_channel_on(no);
 		ST7735_WriteString(2, 2+(30*2), "ON", Font_16x26, GREEN, BLACK);
 	}
-	DAQ_channel_set_flag_enable(no, false);
 }
 
 void DAQ_CHANGE_save(DAQ_channel_no no) {

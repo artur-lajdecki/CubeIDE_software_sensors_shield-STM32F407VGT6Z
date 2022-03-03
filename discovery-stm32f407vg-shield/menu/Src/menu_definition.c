@@ -246,6 +246,7 @@ uint32_t MENU_CHANGE_value(uint32_t value) {
 		}
 
 	}
+
 	if( c.place_value == 8 && encoder_enter(&encoder_1)) {
 		menu_flags.flag_CHANGE_cursor = false;
 		menu_flags.flag_CHANGE_digit = false;
@@ -254,6 +255,19 @@ uint32_t MENU_CHANGE_value(uint32_t value) {
 		menu_flags.flag_show_menu = true;
 		menu_flags.flag_change_finish = true;
 		c.place_value = 2;
+	}
+
+	if(menu_flags.flag_CHANGE_temperature) {
+		ST7735_WriteString(2, 2+(30*0), "Set temperature limit: ", Font_7x10, WHITE, BLACK);
+		if(value>10000) {
+			value = 10000;
+		}
+	}
+	if(menu_flags.flag_CHANGE_power) {
+		ST7735_WriteString(2, 2+(30*0), "Set power limit: ", Font_7x10, WHITE, BLACK);
+		if(value>99900) {
+			value = 99900;
+		}
 	}
 	return value;
 }
@@ -290,6 +304,7 @@ uint32_t MENU_CALC_value(uint32_t value_in, int8_t direction, uint8_t dec) {
 	default:
 		break;
 	}
+
 	if (value_out < 0) value_out = 0;
 	if (value_out > 99999999) value_out = 99999999;
 	return (uint32_t) value_out;
@@ -306,9 +321,10 @@ void MENU_SHOW_value(uint32_t value) {
 			cijfer[i] = (uint8_t) (value % 10) + 48;
 			value /= 10;
 		}
+
 		sprintf(buffer, "%c%c%c %c%c%c.%c%c", cijfer[7], cijfer[6], cijfer[5], cijfer[4], cijfer[3], cijfer[2], cijfer[1], cijfer[0]);
-		UG_FillFrame(2, gui1.font.font_height, UG_GetXDim(), 2*gui1.font.font_height, C_BLACK);
-		UG_PutString(2, gui1.font.font_height, buffer );
+		//UG_FillFrame(2, gui1.font.font_height, UG_GetXDim(), 2*gui1.font.font_height, C_BLACK);
+		UG_PutString(2, 2*(gui1.font.font_height), buffer );
 
 	}
 
@@ -351,15 +367,15 @@ void MENU_SHOW_cursor(struct cursor *c) {
 	}
 
 	if(c->place_value != c->previous_place_value) {
-		UG_FillFrame(0, 2*gui1.font.font_height, UG_GetXDim(), 3*gui1.font.font_height, C_BLACK);
-		UG_PutString( cursor_position, 2*gui1.font.font_height, "^" );
+		UG_FillFrame(0, 3*gui1.font.font_height, UG_GetXDim(), 4*gui1.font.font_height, C_BLACK);
+		UG_PutString( cursor_position, gui1.font.font_height+(2*gui1.font.font_height), "^" );
 		c->previous_place_value = c->place_value;
 	}
 	else if(c->place_value == 8) {
-		UG_PutString( cursor_position, gui1.font.font_height+(1*gui1.font.font_height), "<Back>" );
+		UG_PutString( cursor_position, gui1.font.font_height+(2*gui1.font.font_height), "<Back>" );
 	}
 	else {
-		UG_PutString( cursor_position, gui1.font.font_height+(1*gui1.font.font_height), "^" );
+		UG_PutString( cursor_position, gui1.font.font_height+(2*gui1.font.font_height), "^" );
 	}
 
 }

@@ -55,6 +55,9 @@ struct menu_flags {
 	_Bool flag_function;
 	_Bool flag_change_finish;
 
+	_Bool flag_CHANGE_temperature;
+	_Bool flag_CHANGE_power;
+
 	_Bool flag_CHANGE_value;
 	_Bool flag_CHANGE_cursor;
 	_Bool flag_CHANGE_digit;

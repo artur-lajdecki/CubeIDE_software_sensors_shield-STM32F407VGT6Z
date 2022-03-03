@@ -48,7 +48,7 @@ struct DAQ_channel {
 	uint16_t  CHANNEL_GPIO_Pin;
 
 	_Bool flag_enable;
-
+	_Bool flag_state;
 
 	struct thermistor *th;
 
